@@ -123,6 +123,7 @@ def main(_):
             rules_file_path=FLAGS.rules, snapshot_timestamp=snapshot_timestamp)
         rules_engine.build_rule_book()
 
+
         iter_objects, resource_counts = scanner.run()
 
         # Load violations processing function
@@ -234,6 +235,11 @@ def _flatten_violations(violations, flattening_scheme):
                 'instance_name': violation.instance_name,
                 'authorized_networks': violation.authorized_networks,
                 'ssl_enabled': violation.ssl_enabled,
+            }
+        if flattening_scheme == 'forwarding_rule_violtions':
+            yield {
+                'rule_index': violation.rule_index,
+                'rule_name': violation.rule_name,
             }
 
 def _output_results(all_violations, snapshot_timestamp, **kwargs):

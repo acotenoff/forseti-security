@@ -19,6 +19,7 @@ from google.cloud.security.scanner.scanners.groups_scanner import GroupsScanner
 from google.cloud.security.scanner.scanners.iam_rules_scanner import IamPolicyScanner
 from google.cloud.security.scanner.scanners.bucket_rules_scanner import BucketsAclScanner
 from google.cloud.security.scanner.scanners.cloudsql_rules_scanner import CloudSqlAclScanner
+from google.cloud.security.scanner.scanners.forwarding_rule_scanner import ForwardingRuleScanner
 # pylint: enable=line-too-long
 
 
@@ -27,6 +28,7 @@ SCANNER_MAP = {
     'IamRulesEngine': IamPolicyScanner,
     'BucketsRulesEngine': BucketsAclScanner,
     'CloudSqlRulesEngine': CloudSqlAclScanner,
+    'ForwardingRuleRulesEngine' : ForwardingRuleScanner,
 }
 
 FLATTENING_MAP = {
@@ -34,6 +36,7 @@ FLATTENING_MAP = {
     'BucketsRulesEngine': 'buckets_acl_violations',
     'CloudSqlRulesEngine': 'cloudsql_acl_violations',
     'GroupsRulesEngine': 'groups_violations',
+    'ForwardingRuleRulesEngine' : 'forwarding_rule_violtions'
 }
 
 RESOURCE_MAP = {

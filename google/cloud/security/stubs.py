@@ -56,3 +56,14 @@ def RunExplainCli():
     """Run Explain CLI."""
     import google.cloud.security.iam.cli as iam_cli
     run_script_module.RunScriptModule(iam_cli)
+
+def RunGetFwdRules():
+    import gflags as flags
+    from google.cloud.security.common.data_access.forwarding_rules_dao import ForwardingRulesDao
+    FLAGS = flags.FLAGS
+    x = ForwardingRulesDao()
+    return x.get_forwarding_rules('20170627T174105Z')
+
+y =  RunGetFwdRules()
+print y
+print len(y)
