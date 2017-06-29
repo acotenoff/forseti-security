@@ -76,17 +76,44 @@ class ForwardingRuleRulesEngine(bre.BaseRulesEngine):
     # pylint: disable=arguments-differ
     def find_policy_violations(self, forwarding_rule,
                                force_rebuild=False):
-        """Determine whether bucket acls violates rules."""
+        """Determine whether forwarding rule violates rules."""
         violations = itertools.chain()
         if self.rule_book is None or force_rebuild:
             self.build_rule_book()
         resource_rules = self.rule_book.get_resource_rules()
 
+        matched = False
         for rule in resource_rules:
-            violations = itertools.chain(violations,
-                                         rule.\
-                                         find_policy_violations(buckets_acls))
-        return violations
+            matched = rule.find_match(forwarding_rule) or matched
+
+        if not matched:
+            return self.RuleViolation(
+                violation_type='FORWARDING_RULE_VIOLATION',
+                load_balancing_scheme=forwarding_rule.load_balancing_scheme,
+                target=forwarding_rule.target,
+                port_range=forwarding_rule.port_range,
+                port=forwarding_rule.ports,
+                ip_protocol=forwarding_rule.ip_protocol,
+                ip_address=forwarding_rule.ip_address)
+
+        else:
+            return []
+
+    # Rule violation.
+    # rule_name: string
+    # rule_index: int
+    # violation_type: FORWARDING_RULE_VIOLATION
+    # target: string
+    # load_balancing_scheme: string
+    # port_range: string
+    # port: string
+    # ip_protocol: string
+    # ip_address: string
+    RuleViolation = namedtuple('RuleViolation',
+                               [
+                                'violation_type', 'target',
+                                'load_balancing_scheme', 'port_range',
+                                'port', 'ip_protocol', 'ip_address'])
 
     def add_rules(self, rules):
         """Add rules to the rule book."""
@@ -140,14 +167,13 @@ class ForwardingRuleRulesBook(bre.BaseRuleBook):
                 raise audit_errors.InvalidRulesSchemaError(
                     'Faulty rule {}'.format(rule_def.get('name')))
 
-        rule_def_resource = { 'target' : target,
-                              'mode': mode,
-                              'load_balancing_scheme': load_balancing_scheme,
-                              'port_range': port_range,
-                              'ip_address': ip_address,
-                              'ip_protocol': ip_protocol,
-                              'port' : port, }
-
+        rule_def_resource = {'target': target,
+                             'mode': mode,
+                             'load_balancing_scheme': load_balancing_scheme,
+                             'port_range': port_range,
+                             'ip_address': ip_address,
+                             'ip_protocol': ip_protocol,
+                             'port': port, }
 
         rule = Rule(rule_name=rule_def.get('name'),
                     rule_index=rule_index,
@@ -191,68 +217,26 @@ class Rule(object):
         self.rule_index = rule_index
         self.rules = rules
 
-    def find_policy_violations(self, network_interface):
-        """Find bucket policy acl violations in the rule book.
+    def find_match(self, forwarding_rule):
+        """Find forwarding rule policy acl violations in the rule book.
 
         Args:
-            bucket_acl: Bucket ACL resource
+            forwarding_rule: forwarding rule resource
 
         Returns:
             Returns RuleViolation named tuple
         """
-        if self.rules.bucket != '^.+$':
-            bucket_bool = re.match(self.rules.bucket, bucket_acl.bucket)
-        else:
-            bucket_bool = True
-        if self.rules.entity != '^.+$':
-            entity_bool = re.match(self.rules.entity, bucket_acl.entity)
-        else:
-            entity_bool = True
-        if self.rules.email != '^.+$':
-            email_bool = re.match(self.rules.email, bucket_acl.email)
-        else:
-            email_bool = True
-        if self.rules.domain != '^.+$':
-            domain_bool = re.match(self.rules.domain, bucket_acl.domain)
-        else:
-            domain_bool = True
-        if self.rules.role != '^.+$':
-            role_bool = re.match(self.rules.role, bucket_acl.role)
-        else:
-            role_bool = True
+        ip_bool = forwarding_rule.ip_address == self.rules['ip_address']
+        scheme_bool = forwarding_rule.load_balancing_scheme == self.rules['load_balancing_scheme']
+        # only one of port or port range will be populated by the rule
+        port_bool = forwarding_rule.port_range == self.rules['port_range'] \
+            if self.rules['port_range'] \
+            else forwarding_rule.ports == self.rules['port']
+        protocol_bool = forwarding_rule.ip_protocol == self.rules['ip_protocol']
 
-        should_raise_violation = (
-            (bucket_bool is not None and bucket_bool) and
-            (entity_bool is not None and entity_bool) and
-            (email_bool is not None and email_bool) and
-            (domain_bool is not None and domain_bool) and
-            (role_bool is not None and role_bool))
-
-        if should_raise_violation:
-            yield self.RuleViolation(
-                resource_type='project',
-                resource_id=bucket_acl.project_number,
-                rule_name=self.rule_name,
-                rule_index=self.rule_index,
-                violation_type='BUCKET_VIOLATION',
-                role=bucket_acl.role,
-                entity=bucket_acl.entity,
-                email=bucket_acl.email,
-                domain=bucket_acl.domain,
-                bucket=bucket_acl.bucket)
-
-    # Rule violation.
-    # resource_type: string
-    # resource_id: string
-    # rule_name: string
-    # rule_index: int
-    # violation_type: BUCKET_VIOLATION
-    # role: string
-    # entity: string
-    # email: string
-    # domain: string
-    # bucket: string
-    RuleViolation = namedtuple('RuleViolation',
-                               ['resource_type', 'resource_id', 'rule_name',
-                                'rule_index', 'violation_type', 'role',
-                                'entity', 'email', 'domain', 'bucket'])
+        matched = (
+            (ip_bool) and
+            (scheme_bool) and
+            (port_bool) and
+            (protocol_bool))
+        return matched

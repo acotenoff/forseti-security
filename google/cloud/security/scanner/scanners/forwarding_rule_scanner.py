@@ -42,8 +42,6 @@ class ForwardingRuleScanner(base_scanner.BaseScanner):
 
     def run(self):
         """Runs the data collection."""
-        #tmp = {}
-        #i = 0
         forwarding_rules = forwarding_rules_dao.ForwardingRulesDao().get_forwarding_rules(self.snapshot_timestamp)
         resource_counts = {
             ResourceType.FORWARDING_RULE: len(forwarding_rules),
@@ -51,27 +49,24 @@ class ForwardingRuleScanner(base_scanner.BaseScanner):
         return [forwarding_rules], resource_counts
 
     # pylint: disable=arguments-differ
-    def find_violations(self, forwarding_rule, rules_engine):
+    def find_violations(self, forwarding_rules, rules_engine):
         """Find violations in the policies.
 
         Args:
-            bucket_data: Buckets to find violations in
+            forwarding_rule: Forwarding rule to find violations in
             rules_engine: The rules engine to run.
 
         Returns:
             A list of violations
         """
         all_violations = []
-        print type (forwarding_rule)
-        for i in list( forwarding_rule ):
-            print "********"
-            print i.ip_address
-            print i.ip_protocol
-            print i.port_range
-            print i.ports
-            print i.load_balancing_scheme
-            print i.target
-            print "**********"
-            #if i.ip_address is in rules_engine.rule_book.rule_defs
-            #print rules_engine.rule_book.rule_defs
+        LOGGER.info('Finding Forwading Rule violations...')
+
+        for forwarding_rule in list(forwarding_rules):
+            LOGGER.debug('%s', forwarding_rule)
+            violations = rules_engine.find_policy_violations(
+                forwarding_rule)
+            LOGGER.debug(violations)
+            all_violations.extend(violations)
+        print all_violations
         return all_violations
