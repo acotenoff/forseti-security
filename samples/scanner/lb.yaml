@@ -1,0 +1,32 @@
+rules:
+  - name: rajtest
+    target: asdfasdfs
+    mode: whitelist
+    load_balancing_scheme: EXTERNAL
+    port_range: 8080-8080
+    ip_protocol: TCP
+    ip_address: "1.2.3.4"
+
+  - name: actest
+    target: banana
+    mode: whitelist
+    load_balancing_scheme: EXTERNAL
+    port_range: 80-80
+    ip_protocol: TCP
+    ip_address: "1.2.3.4"
+
+  - name: actest
+    target: banana
+    mode: whitelist
+    load_balancing_scheme: EXTERNAL
+    port: 80
+    ip_protocol: TCP
+    ip_address: "1.2.3.4"
+
+  - name: anananana
+    target: testtest
+    mode: whitelist
+    load_balancing_scheme: EXTERNAL
+    port_range: 8080-8080
+    ip_protocol: TCP
+    ip_address: "1.2.3.4"
